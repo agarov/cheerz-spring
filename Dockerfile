@@ -19,7 +19,7 @@ COPY src ./src
 RUN ./gradlew bootJar --no-daemon
 
 # --- Stage 2: Run the application ---
-FROM eclipse-temurin:17-jdk-alpine
+FROM eclipse-temurin:17-jre-alpine
 
 # Create app directory
 WORKDIR /app
