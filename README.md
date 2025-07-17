@@ -36,27 +36,50 @@ cheerz-spring/
 
 Le pipeline GitHub Actions comprend 2 jobs principaux :
 
-### 1. Test (`test`)
-- Configuration de l'environnement Java 17
-- Cache des dépendances Gradle
-- Exécution des tests unitaires
-- Build de l'application
+### 1. Build & Test (build-and-test)
 
-### 2. Build and Deploy (`build-and-deploy`)
-- Build de l'application avec Gradle
-- Construction de l'image Docker multi-stage
-- Push vers Google Artifact Registry
-- Déploiement automatique sur Cloud Run
+- Exécution à chaque push sur toutes les branches
+- Récupération du code source
+- Configuration de Java 17 (Temurin)
+- Rendre le wrapper Gradle exécutable
+- Compilation et exécution des tests via ./gradlew build --no-daemon
+
+### 2. Dockerize & Deploy to Cloud Run (docker-deploy)
+
+- S’exécute uniquement sur la branche master (déploiement conditionnel)
+- Dépend du succès du job build-and-test
+- Récupération du code source
+- Authentification auprès de Google Cloud avec la clé stockée dans GCP_SA_KEY
+- Installation et configuration du SDK Google Cloud (gcloud)
+- Configuration de Docker pour pousser vers le Google Artifact Registry
+- Construction de l’image Docker taggée avec le SHA du commit
+- Push de l’image Docker vers Artifact Registry dans le dépôt correspondant
+- Déploiement sur Cloud Run avec l’image poussée, dans la région et projet configurés
+- Le service est déployé en mode “managed” avec accès public (--allow-unauthenticated)
 
 ## Choix de la plateforme de déploiement : Google Cloud Run
 
-**Justification du choix :**
+**Justification du choix pour ce test technique :**
 
-J'ai choisi Google Cloud Run pour les raisons suivantes :
-- **Serverless** : Pas de gestion d'infrastructure, scaling automatique
-- **Pay-per-use** : Facturation uniquement pendant l'exécution des requêtes
-- **Simplicité** : Déploiement direct depuis une image Docker
-- **Performance** : Démarrage rapide et gestion automatique du trafic
+Parmi les options disponibles (CloudRun, Cluster GKE, VM avec Java, AppEngine), j'ai choisi **Google Cloud Run** pour les raisons suivantes :
+
+### Pourquoi Cloud Run était optimal pour ce test technique :
+
+1. **Simplicité de mise en œuvre** : Cloud Run permet un déploiement direct depuis une image Docker sans configuration complexe d'infrastructure, ce qui est parfait pour démontrer rapidement une pipeline CI/CD fonctionnelle.
+
+2. **Coût minimal** : Pour un test technique, Cloud Run offre un modèle "pay-per-use", évitant les coûts fixes d'une VM ou d'un cluster GKE qui tourneraient en permanence.
+
+3. **Intégration native avec le CI/CD** : L'intégration avec GitHub Actions et Artifact Registry est straightforward, permettant de se concentrer sur la qualité de la pipeline plutôt que sur la complexité du déploiement.
+
+
+### Comparaison avec les autres options :
+
+- **Cluster GKE** : Trop complexe pour une simple application Hello World, nécessiterait une configuration Kubernetes extensive
+- **VM avec Java** : Gestion manuelle de l'infrastructure, pas de scaling automatique, coûts fixes
+- **App Engine** : Moins de contrôle sur l'environnement Docker, contraintes sur la structure de l'application
+- **Autres solutions** : Cloud Run offre le meilleur équilibre simplicité/fonctionnalités pour ce contexte
+
+**En résumé** : Cloud Run était le choix optimal car il permet de démontrer un pipeline CI/CD moderne et efficace tout en minimisant la complexité opérationnelle, ce qui est exactement ce qu'on attend d'un test technique bien conçu.
 
 ## Instructions de déploiement sur GCP
 
@@ -90,6 +113,10 @@ gcloud projects add-iam-policy-binding cheerz-spring \
 gcloud projects add-iam-policy-binding cheerz-spring] \
   --member="serviceAccount:github-deployer@cheerz-spring.iam.gserviceaccount.com" \
   --role="roles/artifactregistry.admin"
+
+gcloud iam service-accounts add-iam-policy-binding 1057396878533-compute@developer.gserviceaccount.com \
+    --member="serviceAccount:github-deployer@cheerz-spring.iam.gserviceaccount.com" \
+    --role="roles/iam.serviceAccountUser"
 
 # Générer la clé JSON
 gcloud iam service-accounts keys create key.json \
@@ -137,5 +164,41 @@ docker run -p 8080:8080 cheerz-spring
 ## URL de l'application déployée
 
 L'URL sera générée automatiquement par Cloud Run et affichée dans les logs du pipeline CI/CD.
-Format : `https://cheerz-spring-app-[hash]-ew.a.run.app`
+Format : `https://cheerz-spring-app-[hash].europe-west1.run.app`
 
+## Améliorations possibles
+
+### Optimisations de base
+
+1. **Cache des dépendances**
+   - Mise en cache des dépendances Gradle pour réduire les temps de build
+   - Cache des layers Docker pour accélérer la construction des images
+
+2. **Tests et qualité**
+   - Ajout de tests d'intégration après déploiement
+   - Analyse de la qualité du code (SonarQube)
+   - Vérification de la couverture de tests
+
+3. **Sécurité**
+   - Scan des vulnérabilités sur les images Docker
+   - Analyse des dépendances pour détecter les failles de sécurité
+   - Utilisation de Workload Identity au lieu de clés JSON
+
+### Améliorations du déploiement
+
+4. **Gestion des environnements**
+   - Déploiement sur plusieurs environnements (dev, staging, prod)
+   - Configuration spécifique par environnement
+   - Promotion automatique entre environnements
+
+5. **Monitoring**
+   - Ajout de health checks
+   - Monitoring des métriques de base (CPU, mémoire, requêtes)
+   - Alertes en cas de problème
+
+6. **Rollback et versioning**
+   - Stratégie de rollback automatique
+   - Tagging des versions
+   - Historique des déploiements
+
+Ces améliorations permettraient de rendre le pipeline plus robuste et adapté à un environnement de production.
