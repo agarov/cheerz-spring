@@ -34,7 +34,7 @@ cheerz-spring/
 
 ## Pipeline CI/CD
 
-Le pipeline GitHub Actions comprend 2 jobs principaux :
+La pipeline GitHub Actions comprend 2 jobs principaux :
 
 ### 1. Build & Test (build-and-test)
 
@@ -74,10 +74,9 @@ Parmi les options disponibles (CloudRun, Cluster GKE, VM avec Java, AppEngine), 
 
 ### Comparaison avec les autres options :
 
-- **Cluster GKE** : Trop complexe pour une simple application Hello World, nécessiterait une configuration Kubernetes extensive
+- **Cluster GKE** : Trop complexe pour une simple application Hello World, nécessiterait la configuration d'un cluster Kubernetes
 - **VM avec Java** : Gestion manuelle de l'infrastructure, pas de scaling automatique, coûts fixes
 - **App Engine** : Moins de contrôle sur l'environnement Docker, contraintes sur la structure de l'application
-- **Autres solutions** : Cloud Run offre le meilleur équilibre simplicité/fonctionnalités pour ce contexte
 
 **En résumé** : Cloud Run était le choix optimal car il permet de démontrer un pipeline CI/CD moderne et efficace tout en minimisant la complexité opérationnelle, ce qui est exactement ce qu'on attend d'un test technique bien conçu.
 
@@ -201,4 +200,4 @@ Format : `https://cheerz-spring-app-[hash].europe-west1.run.app`
    - Tagging des versions
    - Historique des déploiements
 
-Ces améliorations permettraient de rendre le pipeline plus robuste et adapté à un environnement de production.
+Ces améliorations permettraient de rendre la pipeline plus robuste et adapté à un environnement de production.
